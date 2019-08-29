@@ -34,6 +34,7 @@ install.packages("psData")
 4. Import to R directly.
 
 ```{r, warning=FALSE, message=FALSE, error=FALSE, cache=FALSE}
+require(tidyverse)
 require(WDI)  # load WDI package
 ```
 * To find the variable codes to call, first search with the ```WDIsearch()``` function.
@@ -75,6 +76,8 @@ wb <- WDI(country="all", indicator=c("SE.XPD.TOTL.GB.ZS", "GC.DOD.TOTL.GD.ZS",
           start=1960,
           end=2012,
           extra=TRUE)
+
+# arrange(wb, iso2c, year) -> wb
 ```
 
 \pagebreak
@@ -123,15 +126,17 @@ aggregates<-subset(wb, region=="Aggregates")
 world<-subset(aggregates, country=="World")
 
 # Make a subset of only region aggregates
-regions<-subset(aggregates, country=="East Asia & Pacific (all income levels)" |
-                            country=="Middle East & North Africa (all income levels)" |
-                            country=="Sub-Saharan Africa (all income levels)" |
+regions<-subset(aggregates, country=="East Asia & Pacific" |
+                            country=="Middle East & North Africa" |
+                            country=="Sub-Saharan Africa" |
                             country=="North America" |
-                            country=="Latin America & Caribbean (all income levels)" |
-                            country=="Europe & Central Asia (all income levels)" |
+                            country=="Latin America & Caribbean" |
+                            country=="Europe & Central Asia" |
                             country=="South Asia")
 
 wb<-subset(wb, region!="Aggregates")
+
+arrange(wb, iso2c, year) -> wb
 ```
 
 \pagebreak
@@ -170,7 +175,7 @@ ggplot(regions, aes(x = year, y = gdpcap, colour=country)) +
 
 ### Panel of time-series plots for one variable and one plot per unit
 ```{r, warning=FALSE, message=FALSE, error=FALSE, cache=FALSE, fig.height=8}
-ggplot(wb[wb$region=="Europe & Central Asia (all income levels)",], aes(x=year, y=trade)) +
+ggplot(wb[wb$region=="Europe & Central Asia",], aes(x=year, y=trade)) +
   geom_line(aes(group=country)) +
   facet_wrap(~ country) +
   xlab("Year") +
@@ -186,6 +191,8 @@ ggplot(wb[wb$region=="Europe & Central Asia (all income levels)",], aes(x=year, 
 require(psData)
 polity <- PolityGet(vars = "polity2")
 polity<-subset(polity, year>=1960 & year<=2012)
+polity <- polity %>%
+  filter(!country %in% "Vietnam South")
 head(polity)               # peek at the dataframe
 ```
 
@@ -210,6 +217,8 @@ head(polity)
 dem<-subset(polity, select=c("iso2c", "year", "polity2"))
 
 df<-merge(wb, dem, by=c("iso2c", "year"))      # 7,634 country-years matched, yay
+df <- df %>%
+  distinct(iso2c, year, .keep_all = T)
 ```
 
 ## Standardize time-series on different scales
@@ -225,7 +234,7 @@ df$trade.z<-rescale(df$trade)
 
 ## Visualize standardized time-series by country
 ```{r, warning=FALSE, message=FALSE, error=FALSE, cache=FALSE, fig.width=8}
-ggplot(df[df$region=="Middle East & North Africa (all income levels)",], aes(x=year)) +
+ggplot(df[df$region=="Middle East & North Africa",], aes(x=year)) +
   geom_line(aes(y=trade.z, group=country, colour="Trade")) +
   geom_line(aes(y=dem.z, group=country, colour="Polity IV")) +
   facet_wrap(~ country) +
